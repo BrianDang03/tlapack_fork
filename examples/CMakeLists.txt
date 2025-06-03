@@ -22,6 +22,26 @@ add_custom_command(
     && echo ""
 )
 
+# add the example geqr2_Brian
+add_subdirectory( geqr2_Brian )
+add_custom_command(
+  OUTPUT run-all-examples-cmd APPEND
+  COMMAND
+    echo "- example_geqr2_Brian ----------------" &&
+    "${CMAKE_CURRENT_BINARY_DIR}/geqr2_Brian/example_geqr2_Brian${CMAKE_EXECUTABLE_SUFFIX}"
+    && echo ""
+)
+
+# add the example geqr2_Brian
+add_subdirectory( potri )
+add_custom_command(
+  OUTPUT run-all-examples-cmd APPEND
+  COMMAND
+    echo "- example_potri ----------------" &&
+    "${CMAKE_CURRENT_BINARY_DIR}/potri/example_potri${CMAKE_EXECUTABLE_SUFFIX}"
+    && echo ""
+)
+
 # add the eigenvalues example
 add_subdirectory( eigenvalues )
 add_custom_command(
