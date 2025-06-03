@@ -167,7 +167,7 @@ void run(size_t n)
     //C (Lower) * Y = B
     // Create a Copy B into Y
     lacpy(tlapack::GENERAL, B, Y);
-    tlapack::trsm(tlapack::Side::Left, tlapack::Uplo::Lower, tlapack::Op::NoTrans, tlapack::Diag::NonUnit, T(1), C, Y); 
+    tlapack::trsm(tlapack::Side::Left, tlapack::Uplo::Lower, tlapack::Op::NoTrans, tlapack::Diag::NonUnit, real_t(1), C, Y); 
 
     // Print Y
     if (verbose) {
@@ -178,7 +178,7 @@ void run(size_t n)
     //C (Trans) * X = Y
     // Create a Copy Y into X
     lacpy(tlapack::GENERAL, Y, X);
-    tlapack::trsm(tlapack::Side::Left, tlapack::Uplo::Lower, tlapack::Op::ConjTrans, tlapack::Diag::NonUnit, T(1), C, X); 
+    tlapack::trsm(tlapack::Side::Left, tlapack::Uplo::Lower, tlapack::Op::ConjTrans, tlapack::Diag::NonUnit, real_t(1), C, X); 
 
     // Print X
     if (verbose) {
