@@ -81,13 +81,13 @@ void hemm_brian(Side side,
     const idx_t n = ncols(B);
 
     // check arguments
-    tlapack_check_false(side != Side::Left && side != Side::Right);
-    tlapack_check_false(uplo != Uplo::Lower && uplo != Uplo::Upper &&
-                        uplo != Uplo::General);
-    tlapack_check_false(nrows(A) != ncols(A));
-    tlapack_check_false(nrows(A) != ((side == Side::Left) ? m : n));
-    tlapack_check_false(nrows(C) != m);
-    tlapack_check_false(ncols(C) != n);
+    // tlapack_check_false(side != Side::Left && side != Side::Right);
+    // tlapack_check_false(uplo != Uplo::Lower && uplo != Uplo::Upper &&
+    //                     uplo != Uplo::General);
+    // tlapack_check_false(nrows(A) != ncols(A));
+    // tlapack_check_false(nrows(A) != ((side == Side::Left) ? m : n));
+    // tlapack_check_false(nrows(C) != m);
+    // tlapack_check_false(ncols(C) != n);
 
     if (side == Side::Left) {
         if (trans == Op::NoTrans) {
@@ -131,70 +131,29 @@ void hemm_brian(Side side,
             if (uplo == Uplo::Upper) {
                 // or uplo == Uplo::General
                 for (idx_t j = 0; j < n; j++) {
-                    scalar_type<TA, TB> sum(0);
-                    for (idx_t k = m - 1; k >= 0; k--) {
-                        for (idx_t i = 0; i <= j; j++) {
+                    for (idx_t k = 0; k < m; k++) {
+                        T sum(0);
+                        for (idx_t i = 0; i < j; i++) {
+                            sum += A(i, j) * B(k, i);
+                        }
+                        for (idx_t i = j; i < n; i++) {
                             sum += A(j, i) * B(k, i);
                         }
-                        C(j, m - k - 1) = sum;
+                        C(j, k) = sum;
                     }
                 }
-                // for (idx_t j = 0; j < n; ++j) {
-                //     for (idx_t i = 0; i < m; ++i) {
-                //         scalar_type<TA, TB> sum(0);
-                //         for (idx_t k = 0; k < i; ++k)
-                //             sum += conj(A(i, k)) * B(k, j);
-                //         sum += real(A(i, i)) * B(i, j);
-                //         for (idx_t k = i + 1; k < m; ++k)
-                //             sum += A(k, i) * B(k, j);
-                //         C(i, j) = alpha * sum + beta * C(i, j);
-                //     }
-                // }
             }
             else {
                 // uplo == Uplo::Lower
-                for (idx_t j = 0; j < n; ++j) {
-                    for (idx_t i = 0; i < m; ++i) {
-                        scalar_type<TA, TB> sum(0);
-                        for (idx_t k = 0; k < i; ++k)
-                            sum += A(i, k) * B(k, j);
-                        sum += real(A(i, i)) * B(i, j);
-                        for (idx_t k = i + 1; k < m; ++k)
-                            sum += conj(A(k, i)) * B(k, j);
-                        C(i, j) = alpha * sum + beta * C(i, j);
-                    }
-                }
             }
         }
         else {
             // TransConj
             if (uplo == Uplo::Lower) {
                 // or uplo == Uplo::General
-                for (idx_t j = 0; j < n; ++j) {
-                    for (idx_t i = 0; i < m; ++i) {
-                        scalar_type<TA, TB> sum(0);
-                        for (idx_t k = 0; k < i; ++k)
-                            sum += A(i, k) * B(k, j);
-                        sum += real(A(i, i)) * B(i, j);
-                        for (idx_t k = i + 1; k < m; ++k)
-                            sum += conj(A(k, i)) * B(k, j);
-                        C(i, j) = alpha * sum + beta * C(i, j);
-                    }
-                }
             }
             else {
                 // uplo == Uplo::Lower
-                for (idx_t j = 0; j < n; ++j) {
-                    for (idx_t i = 0; i < m; ++i) {
-                        scalar_type<TA, TB> sum(0);
-                        for (idx_t k = 0; k < i; ++k)
-                            sum += conj(A(i, k)) * B(k, j);
-                        sum += real(A(i, i)) * B(i, j);
-                        for (idx_t k = i + 1; k < m; ++k)
-                            sum += A(k, i) * B(k, j);
-                        C(i, j) = alpha * sum + beta * C(i, j);
-                    }
-                }
             }
         }
     }
@@ -252,62 +211,18 @@ void hemm_brian(Side side,
             // Trans
             if (uplo == Uplo::Upper) {
                 // or uplo == Uplo::General
-                for (idx_t j = 0; j < n; ++j) {
-                    for (idx_t i = 0; i < m; ++i) {
-                        scalar_type<TA, TB> sum(0);
-                        for (idx_t k = 0; k < j; ++k)
-                            sum += B(i, k) * conj(A(j, k));
-                        sum += B(i, j) * real(A(j, j));
-                        for (idx_t k = j + 1; k < n; ++k)
-                            sum += B(i, k) * A(k, j);
-                        C(i, j) = alpha * sum + beta * C(i, j);
-                    }
-                }
             }
             else {
                 // uplo == Uplo::Lower
-                for (idx_t j = 0; j < n; ++j) {
-                    for (idx_t i = 0; i < m; ++i) {
-                        scalar_type<TA, TB> sum(0);
-                        for (idx_t k = 0; k < j; ++k)
-                            sum += B(i, k) * A(j, k);
-                        sum += B(i, j) * real(A(j, j));
-                        for (idx_t k = j + 1; k < n; ++k)
-                            sum += B(i, k) * conj(A(k, j));
-                        C(i, j) = alpha * sum + beta * C(i, j);
-                    }
-                }
             }
         }
         else {
             // TransConj
             if (uplo == Uplo::Upper) {
                 // or uplo == Uplo::General
-                for (idx_t j = 0; j < n; ++j) {
-                    for (idx_t i = 0; i < m; ++i) {
-                        scalar_type<TA, TB> sum(0);
-                        for (idx_t k = 0; k < j; ++k)
-                            sum += B(i, k) * A(j, k);
-                        sum += B(i, j) * real(A(j, j));
-                        for (idx_t k = j + 1; k < n; ++k)
-                            sum += B(i, k) * conj(A(k, j));
-                        C(i, j) = alpha * sum + beta * C(i, j);
-                    }
-                }
             }
             else {
                 // uplo == Uplo::Lower
-                for (idx_t j = 0; j < n; ++j) {
-                    for (idx_t i = 0; i < m; ++i) {
-                        scalar_type<TA, TB> sum(0);
-                        for (idx_t k = 0; k < j; ++k)
-                            sum += B(i, k) * conj(A(j, k));
-                        sum += B(i, j) * real(A(j, j));
-                        for (idx_t k = j + 1; k < n; ++k)
-                            sum += B(i, k) * A(k, j);
-                        C(i, j) = alpha * sum + beta * C(i, j);
-                    }
-                }
             }
         }
     }
@@ -365,12 +280,11 @@ void mult_hehe(Uplo uplo,
         gemm(Op::NoTrans, Op::ConjTrans, alpha, A01, B01, real_t(1), C00);
 
         // A00*B01 + C01 = C01
-        hemm_brian(Side::Left, Uplo::Upper, Op::NoTrans, alpha, A00, B01, beta,
-                   C01);  // beta
+        hemm(Side::Left, Uplo::Upper, alpha, A00, B01, beta,
+             C01);  // beta
 
         //(A00*B01 + C01) + A01B11 = C
-        hemm_brian(Side::Right, Uplo::Upper, Op::NoTrans, alpha, B11, A01,
-                   real_t(1), C01);
+        hemm(Side::Right, Uplo::Upper, alpha, B11, A01, real_t(1), C01);
 
         // Creating B01^H and A01^H
         std::vector<TB> B01H_((n - n0) * n0);
@@ -388,13 +302,15 @@ void mult_hehe(Uplo uplo,
                 A01H(i, j) = conj(A01(j, i));
             }
 
-        // A11 * B01H + C10 = C10
-        hemm_brian(Side::Left, Uplo::Upper, Op::NoTrans, alpha, A11, B01H, beta,
+        // A11 * B01H + C10 = C10 // Here
+        hemm_brian(Side::Left, Uplo::Upper, Op::Trans, alpha, A11, B01, beta,
                    C10);  // beta
 
-        // //A01^H * B00 + (A11*B01^H)
-        hemm_brian(Side::Right, Uplo::Upper, Op::NoTrans, alpha, B00, A01H,
-                   real_t(1), C10);
+        // //A01^H * B00 + (A11*B01^H) // Here
+        // hemm_brian(Side::Right, Uplo::Upper, Op::NoTrans, alpha, B00, A01H,
+        //            real_t(1), C10);
+
+        hemm(Side::Right, Uplo::Upper, alpha, B00, A01H, real_t(1), C10);
 
         // A11*B11
         mult_hehe(Uplo::Upper, alpha, A11, B11, beta, C11);
@@ -427,12 +343,10 @@ void mult_hehe(Uplo uplo,
         gemm(Op::ConjTrans, Op::NoTrans, alpha, A10, B10, real_t(1), C00);
 
         // A10*B00 + C10 = C10
-        hemm_brian(Side::Right, Uplo::Lower, Op::NoTrans, alpha, B00, A10, beta,
-                   C10);
+        hemm(Side::Right, Uplo::Lower, alpha, B00, A10, beta, C10);
 
         // A11*B10 + C10 = C10
-        hemm_brian(Side::Left, Uplo::Lower, Op::NoTrans, alpha, A11, B10,
-                   real_t(1), C10);
+        hemm(Side::Left, Uplo::Lower, alpha, A11, B10, real_t(1), C10);
 
         // Creating vectors to put conjtranspose
         std::vector<TB> B01H_(n0 * (n - n0));
@@ -451,12 +365,10 @@ void mult_hehe(Uplo uplo,
             }
 
         // A00*B01^H + C01 = C01
-        hemm_brian(Side::Left, Uplo::Lower, Op::NoTrans, alpha, A00, B01H, beta,
-                   C01);
+        hemm(Side::Left, Uplo::Lower, alpha, A00, B01H, beta, C01);
 
         // A01^H*B11 + C01 = C01
-        hemm_brian(Side::Right, Uplo::Lower, Op::NoTrans, alpha, B11, A01H,
-                   real_t(1), C01);
+        hemm(Side::Right, Uplo::Lower, alpha, B11, A01H, real_t(1), C01);
 
         // A11*B11 = C11
         mult_hehe(Uplo::Lower, alpha, A11, B11, beta, C11);
@@ -517,11 +429,6 @@ void run(size_t n, size_t k)
     // multiplying two upper triangular hermitian matrices
     // one function with alpha/beta one without so C <- AB and C <- alpha(AB) +
     // beta(C) make it work for upper and lower
-    mult_hehe(Uplo::Upper, 5, D, E, 10, F);
-
-    std::cout << "F =" << std::endl;
-    printMatrix(F);
-    std::cout << std::endl;
 
     // Matrices
     std::vector<T> A_(n * n);
@@ -538,14 +445,19 @@ void run(size_t n, size_t k)
 
     // // Initialize arrays with junk
     for (size_t j = 0; j < n; ++j) {
-        for (size_t i = 0; i < n; ++i) {
+        for (size_t i = j + 1; i < n; ++i) {
             if constexpr (tlapack::is_complex<T>)
-                A(i, j) = T(static_cast<float>(0xDEADBEEF),
+                D(i, j) = T(static_cast<float>(0xDEADBEEF),
                             static_cast<float>(0xDEADBEEF));
             else
-                A(i, j) = T(static_cast<float>(0xDEADBEEF));
+                D(i, j) = T(static_cast<float>(0xDEADBEEF));
         }
     }
+    mult_hehe(Uplo::Upper, 1, D, E, 0, F);
+
+    std::cout << "F =" << std::endl;
+    printMatrix(F);
+    std::cout << std::endl;
 
     // Generate a random matrix in A
     for (size_t j = 0; j < n; ++j) {
