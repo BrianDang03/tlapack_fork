@@ -22,6 +22,16 @@ add_custom_command(
     && echo ""
 )
 
+# add the example hemm_brian
+add_subdirectory( hemm_brian )
+add_custom_command(
+  OUTPUT run-all-examples-cmd APPEND
+  COMMAND
+    echo "- example_hemm_brian ----------------" &&
+    "${CMAKE_CURRENT_BINARY_DIR}/hemm_brian/example_hemm_brian${CMAKE_EXECUTABLE_SUFFIX}"
+    && echo ""
+)
+
 # add the eigenvalues example
 add_subdirectory( eigenvalues )
 add_custom_command(
