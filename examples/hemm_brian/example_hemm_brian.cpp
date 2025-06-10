@@ -130,18 +130,71 @@ void hemm_brian(Side side,
             // Trans
             if (uplo == Uplo::Upper) {
                 // or uplo == Uplo::General
+                for (idx_t j = 0; j < n; j++) {
+                    scalar_type<TA, TB> sum(0);
+                    for (idx_t k = m - 1; k >= 0; k--) {
+                        for (idx_t i = 0; i <= j; j++) {
+                            sum += A(j, i) * B(k, i);
+                        }
+                        C(j, m - k - 1) = sum;
+                    }
+                }
+                // for (idx_t j = 0; j < n; ++j) {
+                //     for (idx_t i = 0; i < m; ++i) {
+                //         scalar_type<TA, TB> sum(0);
+                //         for (idx_t k = 0; k < i; ++k)
+                //             sum += conj(A(i, k)) * B(k, j);
+                //         sum += real(A(i, i)) * B(i, j);
+                //         for (idx_t k = i + 1; k < m; ++k)
+                //             sum += A(k, i) * B(k, j);
+                //         C(i, j) = alpha * sum + beta * C(i, j);
+                //     }
+                // }
             }
             else {
                 // uplo == Uplo::Lower
+                for (idx_t j = 0; j < n; ++j) {
+                    for (idx_t i = 0; i < m; ++i) {
+                        scalar_type<TA, TB> sum(0);
+                        for (idx_t k = 0; k < i; ++k)
+                            sum += A(i, k) * B(k, j);
+                        sum += real(A(i, i)) * B(i, j);
+                        for (idx_t k = i + 1; k < m; ++k)
+                            sum += conj(A(k, i)) * B(k, j);
+                        C(i, j) = alpha * sum + beta * C(i, j);
+                    }
+                }
             }
         }
         else {
             // TransConj
             if (uplo == Uplo::Lower) {
                 // or uplo == Uplo::General
+                for (idx_t j = 0; j < n; ++j) {
+                    for (idx_t i = 0; i < m; ++i) {
+                        scalar_type<TA, TB> sum(0);
+                        for (idx_t k = 0; k < i; ++k)
+                            sum += A(i, k) * B(k, j);
+                        sum += real(A(i, i)) * B(i, j);
+                        for (idx_t k = i + 1; k < m; ++k)
+                            sum += conj(A(k, i)) * B(k, j);
+                        C(i, j) = alpha * sum + beta * C(i, j);
+                    }
+                }
             }
             else {
                 // uplo == Uplo::Lower
+                for (idx_t j = 0; j < n; ++j) {
+                    for (idx_t i = 0; i < m; ++i) {
+                        scalar_type<TA, TB> sum(0);
+                        for (idx_t k = 0; k < i; ++k)
+                            sum += conj(A(i, k)) * B(k, j);
+                        sum += real(A(i, i)) * B(i, j);
+                        for (idx_t k = i + 1; k < m; ++k)
+                            sum += A(k, i) * B(k, j);
+                        C(i, j) = alpha * sum + beta * C(i, j);
+                    }
+                }
             }
         }
     }
@@ -199,18 +252,62 @@ void hemm_brian(Side side,
             // Trans
             if (uplo == Uplo::Upper) {
                 // or uplo == Uplo::General
+                for (idx_t j = 0; j < n; ++j) {
+                    for (idx_t i = 0; i < m; ++i) {
+                        scalar_type<TA, TB> sum(0);
+                        for (idx_t k = 0; k < j; ++k)
+                            sum += B(i, k) * conj(A(j, k));
+                        sum += B(i, j) * real(A(j, j));
+                        for (idx_t k = j + 1; k < n; ++k)
+                            sum += B(i, k) * A(k, j);
+                        C(i, j) = alpha * sum + beta * C(i, j);
+                    }
+                }
             }
             else {
                 // uplo == Uplo::Lower
+                for (idx_t j = 0; j < n; ++j) {
+                    for (idx_t i = 0; i < m; ++i) {
+                        scalar_type<TA, TB> sum(0);
+                        for (idx_t k = 0; k < j; ++k)
+                            sum += B(i, k) * A(j, k);
+                        sum += B(i, j) * real(A(j, j));
+                        for (idx_t k = j + 1; k < n; ++k)
+                            sum += B(i, k) * conj(A(k, j));
+                        C(i, j) = alpha * sum + beta * C(i, j);
+                    }
+                }
             }
         }
         else {
             // TransConj
             if (uplo == Uplo::Upper) {
                 // or uplo == Uplo::General
+                for (idx_t j = 0; j < n; ++j) {
+                    for (idx_t i = 0; i < m; ++i) {
+                        scalar_type<TA, TB> sum(0);
+                        for (idx_t k = 0; k < j; ++k)
+                            sum += B(i, k) * A(j, k);
+                        sum += B(i, j) * real(A(j, j));
+                        for (idx_t k = j + 1; k < n; ++k)
+                            sum += B(i, k) * conj(A(k, j));
+                        C(i, j) = alpha * sum + beta * C(i, j);
+                    }
+                }
             }
             else {
                 // uplo == Uplo::Lower
+                for (idx_t j = 0; j < n; ++j) {
+                    for (idx_t i = 0; i < m; ++i) {
+                        scalar_type<TA, TB> sum(0);
+                        for (idx_t k = 0; k < j; ++k)
+                            sum += B(i, k) * conj(A(j, k));
+                        sum += B(i, j) * real(A(j, j));
+                        for (idx_t k = j + 1; k < n; ++k)
+                            sum += B(i, k) * A(k, j);
+                        C(i, j) = alpha * sum + beta * C(i, j);
+                    }
+                }
             }
         }
     }
@@ -244,9 +341,11 @@ void mult_hehe(Uplo uplo,
         C(0, 0) = alpha * real(A(0, 0)) * real(B(0, 0)) + beta * C(0, 0);
         return;
     }
+
     const idx_t n0 = n / 2;
 
     if (uplo == Uplo::Upper) {
+        const idx_t n0 = n / 2;
         auto A00 = slice(A, range(0, n0), range(0, n0));
         auto A01 = slice(A, range(0, n0), range(n0, n));
         auto A11 = slice(A, range(n0, n), range(n0, n));
@@ -260,7 +359,7 @@ void mult_hehe(Uplo uplo,
         auto C11 = slice(C, range(n0, n), range(n0, n));
 
         // A00*B00 = C00
-        mult_hehe(uplo, alpha, A00, B00, beta, C00);
+        mult_hehe(Uplo::Upper, alpha, A00, B00, beta, C00);
 
         // A01*B01^H + (A00*B00 + C00) = C00
         gemm(Op::NoTrans, Op::ConjTrans, alpha, A01, B01, real_t(1), C00);
@@ -281,6 +380,8 @@ void mult_hehe(Uplo uplo,
         tlapack::LegacyMatrix<TA> A01H(n - n0, n0, &A01H_[0], n - n0);
 
         std::cout << std::endl;
+        // conjtranspose(B01, B01H);
+        // conjtranspose(A01, A01H);
         for (idx_t i = 0; i < n - n0; ++i)
             for (idx_t j = 0; j < n0; ++j) {
                 B01H(i, j) = conj(B01(j, i));
@@ -296,10 +397,72 @@ void mult_hehe(Uplo uplo,
                    real_t(1), C10);
 
         // A11*B11
-        mult_hehe(uplo, alpha, A11, B11, beta, C11);
+        mult_hehe(Uplo::Upper, alpha, A11, B11, beta, C11);
 
         // A01^H * B01 + A11*B11
         gemm(Op::ConjTrans, Op::NoTrans, alpha, A01, B01, real_t(1), C11);
+
+        return;
+    }
+
+    else {
+        auto A00 = slice(A, range(0, n0), range(0, n0));
+        auto A10 = slice(A, range(n0, n), range(0, n0));
+        auto A11 = slice(A, range(n0, n), range(n0, n));
+
+        auto B00 = slice(B, range(0, n0), range(0, n0));
+        auto B10 = slice(B, range(n0, n), range(0, n0));
+        auto B11 = slice(B, range(n0, n), range(n0, n));
+        auto C00 = slice(C, range(0, n0), range(0, n0));
+        auto C01 = slice(C, range(0, n0), range(n0, n));
+        auto C10 = slice(C, range(n0, n), range(0, n0));
+        auto C11 = slice(C, range(n0, n), range(n0, n));
+
+        std::cout << std::endl;
+
+        // A00*B00 = C00
+        mult_hehe(Uplo::Lower, alpha, A00, B00, beta, C00);
+
+        // A01^H*B10 + C00 = C00
+        gemm(Op::ConjTrans, Op::NoTrans, alpha, A10, B10, real_t(1), C00);
+
+        // A10*B00 + C10 = C10
+        hemm_brian(Side::Right, Uplo::Lower, Op::NoTrans, alpha, B00, A10, beta,
+                   C10);
+
+        // A11*B10 + C10 = C10
+        hemm_brian(Side::Left, Uplo::Lower, Op::NoTrans, alpha, A11, B10,
+                   real_t(1), C10);
+
+        // Creating vectors to put conjtranspose
+        std::vector<TB> B01H_(n0 * (n - n0));
+        tlapack::LegacyMatrix<TB> B01H(n0, n - n0, &B01H_[0], n0);
+
+        std::vector<TB> A01H_(n0 * (n - n0));
+        tlapack::LegacyMatrix<TB> A01H(n0, n - n0, &A01H_[0], n0);
+
+        // conjtranspose(B10, B01H);
+        // conjtranspose(A10, A01H);
+
+        for (idx_t i = 0; i < n0; ++i)
+            for (idx_t j = 0; j < n - n0; ++j) {
+                B01H(i, j) = conj(B10(j, i));
+                A01H(i, j) = conj(A10(j, i));
+            }
+
+        // A00*B01^H + C01 = C01
+        hemm_brian(Side::Left, Uplo::Lower, Op::NoTrans, alpha, A00, B01H, beta,
+                   C01);
+
+        // A01^H*B11 + C01 = C01
+        hemm_brian(Side::Right, Uplo::Lower, Op::NoTrans, alpha, B11, A01H,
+                   real_t(1), C01);
+
+        // A11*B11 = C11
+        mult_hehe(Uplo::Lower, alpha, A11, B11, beta, C11);
+
+        // alpha(A10H*B10^H) + 1(C11) = C11
+        gemm(Op::NoTrans, Op::ConjTrans, alpha, A10, B10, real_t(1), C11);
 
         return;
     }
