@@ -227,10 +227,10 @@ void hemm_brian(Side side,
                     for (idx_t k = 0; k < m; k++) {
                         T sum(0);
                         for (idx_t i = 0; i < k; i++) {
-                            sum += conj(B(i, j)) * A(k, i);
+                            sum += B(i, j) * A(i, k);
                         }
                         for (idx_t i = k; i < m; i++) {
-                            sum += conj(B(i, j)) * A(i, k);
+                            sum += B(i, j) * A(k, i);
                         }
                         C(j, k) = alpha * sum + beta * C(j, k);
                     }
@@ -432,53 +432,339 @@ void run(size_t n, size_t k)
     // Functors for creating new matrices
     tlapack::Create<matrix_t> new_matrix;
 
-    // Turn it off if m or n are large
-    // bool verbose = false;
-    bool verbose = true;
+    // // Turn it off if m or n are large
+    // // bool verbose = false;
+    // bool verbose = true;
 
-    std::vector<T> D_(n * n);
-    tlapack::LegacyMatrix<T> D(n, n, &D_[0], n);
+    // std::vector<T> D_(n * n);
+    // tlapack::LegacyMatrix<T> D(n, n, &D_[0], n);
 
-    std::vector<T> E_(n * n);
-    tlapack::LegacyMatrix<T> E(n, n, &E_[0], n);
+    // std::vector<T> E_(n * n);
+    // tlapack::LegacyMatrix<T> E(n, n, &E_[0], n);
 
-    std::vector<T> F_(n * n);
-    tlapack::LegacyMatrix<T> F(n, n, &F_[0], n);
+    // std::vector<T> F_(n * n);
+    // tlapack::LegacyMatrix<T> F(n, n, &F_[0], n);
 
+    // for (int i = 0; i < n; i++) {
+    //     for (int j = 0; j < n; j++) {
+    //         D(i, j) = i;
+    //         D(j, i) = i;
+    //         E(i, j) = i + 2;
+    //         E(j, i) = i + 3;
+    //         F(i, j) = i + 2;
+    //         F(j, i) = i;
+    //     }
+    // }
+
+    // std::cout << "\nE =";
+    // printMatrix(E);
+    // std::cout << std::endl;
+    // std::cout << "\nF before=:";
+    // printMatrix(F);
+    // std::cout << std::endl;
+
+    // // Matrices
+    // std::vector<T> b_(n * k);
+    // tlapack::LegacyMatrix<T> b(n, k, &b_[0], n);
+
+    // std::vector<T> C_(n * n);
+    // tlapack::LegacyMatrix<T> C(n, n, &C_[0], n);
+
+    // std::vector<T> y_(n * k);
+    // tlapack::LegacyMatrix<T> y(n, k, &y_[0], n);
+
+    // Lower
+    // // // Initialize arrays with junk
+    // for (size_t j = 0; j < n; ++j) {
+    //     for (size_t i = 0; i < j; ++i) {
+    //         if constexpr (tlapack::is_complex<T>)
+    //             D(i, j) = T(static_cast<float>(0xDEADBEEF),
+    //                         static_cast<float>(0xDEADBEEF));
+    //         else
+    //             D(i, j) = T(static_cast<float>(0xDEADBEEF));
+    //     }
+    // }
+
+    // Test
+    // Trans///////////////////////////////////////////////////////////////////////////////////
+
+    // left A Matrix
+    std::vector<T> leftA_(n * k);
+    tlapack::LegacyMatrix<T> leftA(n, k, &leftA_[0], n);
+
+    // right A Matrix
+    std::vector<T> rightA_(k * n);
+    tlapack::LegacyMatrix<T> rightA(k, n, &rightA_[0], k);
+
+    // left C Matrix
+    std::vector<T> leftC_(n * k);
+    tlapack::LegacyMatrix<T> leftC(n, k, &leftC_[0], n);
+
+    // right C Matrix
+    std::vector<T> rightC_(k * n);
+    tlapack::LegacyMatrix<T> rightC(k, n, &rightC_[0], k);
+
+    // L
+    std::vector<T> L_(n * n);
+    tlapack::LegacyMatrix<T> L(n, n, &L_[0], n);
+
+    // U
+    std::vector<T> U_(n * n);
+    tlapack::LegacyMatrix<T> U(n, n, &U_[0], n);
+
+    // Left B
+    std::vector<T> leftB_(k * n);
+    tlapack::LegacyMatrix<T> leftB(k, n, &leftB_[0], k);
+
+    // leftB Transpose
+    std::vector<T> leftBT_(n * k);
+    tlapack::LegacyMatrix<T> leftBT(n, k, &leftBT_[0], n);
+
+    // right B
+    std::vector<T> rightB_(n * k);
+    tlapack::LegacyMatrix<T> rightB(n, k, &rightB_[0], n);
+
+    // rightB Transpose
+    std::vector<T> rightBT_(k * n);
+    tlapack::LegacyMatrix<T> rightBT(k, n, &rightBT_[0], k);
+
+    // Fill in L and U
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            D(i, j) = i;
-            D(j, i) = i;
-            E(i, j) = i;
-            E(j, i) = i;
-            F(i, j) = i + 2;
-            F(j, i) = i;
+            L(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            L(j, i) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            U(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            U(j, i) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
         }
     }
-    std::cout << "\nD =";
-    printMatrix(D);
-    std::cout << std::endl;
-    std::cout << "\nE =";
-    printMatrix(E);
-    std::cout << std::endl;
-    std::cout << "\nF before=:";
-    printMatrix(F);
-    std::cout << std::endl;
 
-    // Matrices
-    std::vector<T> A_(n * n);
-    tlapack::LegacyMatrix<T> A(n, n, &A_[0], n);
+    // Fill in right A and C
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            rightA(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            rightC(i, j) = rightA(i, j);
+        }
+    }
 
-    std::vector<T> b_(n * k);
-    tlapack::LegacyMatrix<T> b(n, k, &b_[0], n);
+    // Fill in left A and C
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < k; j++) {
+            leftA(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            leftC(i, j) = leftA(i, j);
+        }
+    }
 
-    std::vector<T> C_(n * n);
-    tlapack::LegacyMatrix<T> C(n, n, &C_[0], n);
+    // Fill lower triangle with deadbeef on the top right
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = i + 1; j < n; ++j) {
+            L(i, j) = T(static_cast<float>(0xDEADBEEF));
+        }
+    }
 
-    std::vector<T> y_(n * k);
-    tlapack::LegacyMatrix<T> y(n, k, &y_[0], n);
+    // Fill upper triangle with deadbeef on the bottom left
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < i; ++j) {
+            U(i, j) = T(static_cast<float>(0xDEADBEEF));
+        }
+    }
 
-    // // // Initialize arrays with junk
+    // Fill left B
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            leftB(i, j) = i * j + 1;
+        }
+    }
+
+    // Fill right B
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < k; j++) {
+            rightB(i, j) = i * j + 1;
+        }
+    }
+
+    // Fill Transpose left BT
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < k; j++) {
+            leftBT(i, j) = leftB(j, i);
+        }
+    }
+
+    // Fill Tranposee right BT
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            rightBT(i, j) = rightB(j, i);
+        }
+    }
+
+    // // // Print
+    // std::cout << "Starting: \n";
+    // std::cout << "\nL = ";
+    // printMatrix(L);
+
+    // std::cout << "\nU = ";
+    // printMatrix(U);
+
+    // std::cout << "\nleftB = ";
+    // printMatrix(leftB);
+
+    // std::cout << "\nleftBT = ";
+    // printMatrix(leftBT);
+
+    // std::cout << "\nrightB = ";
+    // printMatrix(rightB);
+
+    // std::cout << "\nrightBT = ";
+    // printMatrix(rightBT);
+
+    real_t al = 5.2;
+    real_t be = 10.8;
+
+    // Test Lower Right
+    // Trans///////////////////////////////////////////////////////////////////////////////////
+
+    std::cout << "\n\nTesting Right Lower";
+    hemm(Side::Right, Uplo::Lower, al, L, rightBT, be, rightA);
+    real_t rightNormA = lange(FROB_NORM, rightA);
+
+    hemm_brian(Side::Right, Uplo::Lower, Op::Trans, al, L, rightB, be, rightC);
+
+    std::cout << "\nrightA before = ";
+    printMatrix(rightA);
+
+    std::cout << "\nrightC before = ";
+    printMatrix(rightC);
+
+    for (idx_t i = 0; i < k; i++) {
+        for (idx_t j = 0; j < n; j++) {
+            rightA(i, j) -= rightC(i, j);
+        }
+    }
+
+    std::cout << "\nrightA after = ";
+    printMatrix(rightA);
+
+    std::cout << "\nrightC after = ";
+    printMatrix(rightC);
+
+    real_t rightNormC = lange(FROB_NORM, rightA);
+    std::cout << "\n\nThis is rigth norm of A - C = "
+              << rightNormC / rightNormA;
+
+    // Fill in right A and C
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            rightA(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            rightC(i, j) = rightA(i, j);
+        }
+    }
+
+    // Fill in left A and C
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < k; j++) {
+            leftA(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            leftC(i, j) = leftA(i, j);
+        }
+    }
+
+    // Test Upper Right
+    // Trans///////////////////////////////////////////////////////////////////////////////////
+
+    std::cout << "\n\nTesting Right Upper";
+    hemm(Side::Right, Uplo::Upper, al, U, rightBT, be, rightA);
+    rightNormA = lange(FROB_NORM, rightA);
+
+    hemm_brian(Side::Right, Uplo::Upper, Op::Trans, al, U, rightB, be, rightC);
+
+    for (idx_t i = 0; i < k; i++) {
+        for (idx_t j = 0; j < n; j++) {
+            rightA(i, j) -= rightC(i, j);
+        }
+    }
+
+    rightNormC = lange(FROB_NORM, rightA);
+    std::cout << "\n\nThis is rigth norm of A - C = "
+              << rightNormC / rightNormA;
+
+    // Fill in right A and C
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            rightA(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            rightC(i, j) = rightA(i, j);
+        }
+    }
+
+    // Fill in left A and C
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < k; j++) {
+            leftA(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            leftC(i, j) = leftA(i, j);
+        }
+    }
+
+    // Test Lower Left
+    // Trans///////////////////////////////////////////////////////////////////////////////////
+
+    std::cout << "\n\nTesting Left Lower";
+    hemm(Side::Left, Uplo::Lower, al, L, leftBT, be, leftA);
+    real_t leftNormA = lange(FROB_NORM, leftA);
+
+    hemm_brian(Side::Left, Uplo::Lower, Op::Trans, al, L, leftB, be, leftC);
+
+    for (idx_t i = 0; i < n; i++) {
+        for (idx_t j = 0; j < k; j++) {
+            leftA(i, j) -= leftC(i, j);
+        }
+    }
+
+    real_t leftNormC = lange(FROB_NORM, leftA);
+    std::cout << "\n\nThis is rigth norm of A - C = " << leftNormC / leftNormA;
+
+    // Fill in right A and C
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            rightA(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            rightC(i, j) = rightA(i, j);
+        }
+    }
+
+    // Fill in left A and C
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < k; j++) {
+            leftA(i, j) =
+                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            leftC(i, j) = leftA(i, j);
+        }
+    }
+
+    // Test Upper Left
+    // Trans///////////////////////////////////////////////////////////////////////////////////
+
+    std::cout << "\n\nTesting Left Upper";
+    hemm(Side::Left, Uplo::Upper, al, U, leftBT, be, leftA);
+    leftNormA = lange(FROB_NORM, leftA);
+
+    hemm_brian(Side::Left, Uplo::Upper, Op::Trans, al, U, leftB, be, leftC);
+
+    for (idx_t i = 0; i < n; i++) {
+        for (idx_t j = 0; j < k; j++) {
+            leftA(i, j) -= leftC(i, j);
+        }
+    }
+
+    leftNormC = lange(FROB_NORM, leftA);
+    std::cout << "\n\nThis is rigth norm of A - C = " << leftNormC / leftNormA;
+
     // for (size_t j = 0; j < n; ++j) {
     //     for (size_t i = j + 1; i < n; ++i) {
     //         if constexpr (tlapack::is_complex<T>)
@@ -488,55 +774,86 @@ void run(size_t n, size_t k)
     //             D(i, j) = T(static_cast<float>(0xDEADBEEF));
     //     }
     // }
+    // std::cout << "\nD =";
+    // printMatrix(D);
+    // std::cout << std::endl;
 
-    // // Initialize arrays with junk
-    for (size_t j = 0; j < n; ++j) {
-        for (size_t i = 0; i < j; ++i) {
-            if constexpr (tlapack::is_complex<T>)
-                D(i, j) = T(static_cast<float>(0xDEADBEEF),
-                            static_cast<float>(0xDEADBEEF));
-            else
-                D(i, j) = T(static_cast<float>(0xDEADBEEF));
-        }
-    }
+    // // Creating vectors to put conjtranspose
+    // std::vector<T> ET_(n * n);
+    // tlapack::LegacyMatrix<T> ET(n, n, &ET_[0], n);
 
-    // multiplying two upper triangular hermitian matrices
-    // one function with alpha/beta one without so C <- AB and C <- alpha(AB) +
-    // beta(C) make it work for upper and lower
-    mult_hehe(Uplo::Lower, 1.5, D, E, 7.8, F);
+    // for (idx_t i = 0; i < n; ++i)
+    //     for (idx_t j = 0; j < n; ++j) {
+    //         ET(i, j) = E(j, i);
+    //     }
 
-    std::cout << "\nF =";
-    printMatrix(F);
-    std::cout << std::endl;
+    // std::cout << "\nET =";
+    // printMatrix(ET);
+    // std::cout << std::endl;
 
-    // Generate a random matrix in A
-    for (size_t j = 0; j < n; ++j) {
-        for (size_t i = 0; i <= j; ++i) {
-            if constexpr (tlapack::is_complex<T>)
-                A(i, j) = T(
-                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
-                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            else
-                A(i, j) = T(static_cast<float>(rand()) /
-                            static_cast<float>(RAND_MAX));
-        }
-        A(j, j) =
-            T(n + static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-    }
+    // hemm_brian(Side::Right, Uplo::Lower, Op::Trans, 1, D, E, 0, A);
 
-    // for (size_t j = 0; j < k; ++j)
-    // for (size_t i = 0; i < n; ++i) {
-    // if constexpr (tlapack::is_complex<T>)
-    // b(i, j) = T(static_cast<float>(rand())/static_cast<float>(RAND_MAX),
-    // static_cast<float>(rand())/static_cast<float>(RAND_MAX)); else b(i, j) =
-    // T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+    // std::cout << "A = ";
+    // printMatrix(A);
+    // std::cout << std::endl;
+
+    // hemm(Side::Right, Uplo::Lower, 1, D, ET, 0, C);
+
+    // std::cout << "C = ";
+    // printMatrix(C);
+
+    // for (idx_t i = 0; i < n; i++) {
+    //     for (idx_t j = 0; j < n; j++) {
+    //         A(i, j) -= C(i, j);
+    //     }
     // }
 
-    if (verbose) {
-        std::cout << std::endl << "A = ";
-        printMatrix(A);
-        std::cout << std::endl;
-    }
+    // std::cout << std::endl;
+    // std::cout << "A = ";
+    // printMatrix(A);
+    // std::cout << std::endl;
+
+    // Test//////////////////////////////////////////////////////////////////////////////////////
+
+    // // multiplying two upper triangular hermitian matrices
+    // // one function with alpha/beta one without so C <- AB and C <-
+    // // alpha(AB) + beta(C) make it work for upper and lower
+    // mult_hehe(Uplo::Upper, 1.5, D, E, 7.8, F);
+
+    // std::cout << "\nF =";
+    // printMatrix(F);
+    // std::cout << std::endl;
+
+    // // Generate a random matrix in A
+    // for (size_t j = 0; j < n; ++j) {
+    //     for (size_t i = 0; i <= j; ++i) {
+    //         if constexpr (tlapack::is_complex<T>)
+    //             A(i, j) = T(
+    //                 static_cast<float>(rand()) /
+    //                 static_cast<float>(RAND_MAX), static_cast<float>(rand())
+    //                 / static_cast<float>(RAND_MAX));
+    //         else
+    //             A(i, j) = T(static_cast<float>(rand()) /
+    //                         static_cast<float>(RAND_MAX));
+    //     }
+    //     A(j, j) =
+    //         T(n + static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+    // }
+
+    // // for (size_t j = 0; j < k; ++j)
+    // // for (size_t i = 0; i < n; ++i) {
+    // // if constexpr (tlapack::is_complex<T>)
+    // // b(i, j) = T(static_cast<float>(rand())/static_cast<float>(RAND_MAX),
+    // // static_cast<float>(rand())/static_cast<float>(RAND_MAX)); else b(i, j)
+    // =
+    // // T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+    // // }
+
+    // if (verbose) {
+    //     std::cout << std::endl << "A = ";
+    //     printMatrix(A);
+    //     std::cout << std::endl;
+    // }
 }
 
 //------------------------------------------------------------------------------
@@ -545,8 +862,8 @@ int main(int argc, char** argv)
     int n, k;
 
     // Default arguments
-    n = (argc < 2) ? 5 : atoi(argv[1]);
-    k = (argc < 3) ? 2 : atoi(argv[2]);
+    n = (argc < 2) ? 18 : atoi(argv[1]);
+    k = (argc < 3) ? 10 : atoi(argv[2]);
 
     srand(3);  // Init random seed
 
