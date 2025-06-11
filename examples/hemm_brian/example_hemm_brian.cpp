@@ -414,19 +414,15 @@ void run(size_t n, size_t k)
             F(j, i) = i;
         }
     }
-    std::cout << "D =" << std::endl;
+    std::cout << "\nD =";
     printMatrix(D);
     std::cout << std::endl;
-    std::cout << "E =" << std::endl;
+    std::cout << "\nE =";
     printMatrix(E);
     std::cout << std::endl;
-    std::cout << "F before=:" << std::endl;
+    std::cout << "\nF before=:";
     printMatrix(F);
     std::cout << std::endl;
-
-    // multiplying two upper triangular hermitian matrices
-    // one function with alpha/beta one without so C <- AB and C <- alpha(AB) +
-    // beta(C) make it work for upper and lower
 
     // Matrices
     std::vector<T> A_(n * n);
@@ -451,9 +447,13 @@ void run(size_t n, size_t k)
                 D(i, j) = T(static_cast<float>(0xDEADBEEF));
         }
     }
-    mult_hehe(Uplo::Upper, 5, D, E, 10, F);
 
-    std::cout << "F =" << std::endl;
+    // multiplying two upper triangular hermitian matrices
+    // one function with alpha/beta one without so C <- AB and C <- alpha(AB) +
+    // beta(C) make it work for upper and lower
+    mult_hehe(Uplo::Upper, 1, D, E, 0, F);
+
+    std::cout << "\nF =";
     printMatrix(F);
     std::cout << std::endl;
 
