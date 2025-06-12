@@ -8,6 +8,7 @@
 // the terms of the BSD 3-Clause license. See the accompanying LICENSE file.
 
 // Plugins for <T>LAPACK (must come before <T>LAPACK headers)
+#include <tlapack/base/utils.hpp>
 #include <tlapack/plugins/legacyArray.hpp>
 
 // <T>LAPACK
@@ -15,6 +16,7 @@
 #include <tlapack/blas/syrk.hpp>
 #include <tlapack/blas/trmm.hpp>
 #include <tlapack/blas/trsm.hpp>
+#include <tlapack/lapack/conjugate.hpp>
 #include <tlapack/lapack/geqr2.hpp>
 #include <tlapack/lapack/lacpy.hpp>
 #include <tlapack/lapack/lange.hpp>
@@ -163,9 +165,33 @@ void hemm_brian(Side side,
             // TransConj
             if (uplo == Uplo::Upper) {
                 // or uplo == Uplo::General
+                for (idx_t j = 0; j < n; j++) {
+                    for (idx_t k = 0; k < m; k++) {
+                        T sum(0);
+                        for (idx_t i = 0; i < j; i++) {
+                            sum += conj(A(i, j)) * conj(B(k, i));
+                        }
+                        for (idx_t i = j; i < n; i++) {
+                            sum += A(j, i) * conj(B(k, i));
+                        }
+                        C(j, k) = alpha * sum + beta * C(j, k);
+                    }
+                }
             }
             else {
                 // uplo == Uplo::Lower
+                for (idx_t j = 0; j < n; j++) {
+                    for (idx_t k = 0; k < m; k++) {
+                        T sum(0);
+                        for (idx_t i = 0; i <= j; i++) {
+                            sum += A(j, i) * conj(B(k, i));
+                        }
+                        for (idx_t i = j + 1; i < n; i++) {
+                            sum += conj(A(i, j)) * conj(B(k, i));
+                        }
+                        C(j, k) = alpha * sum + beta * C(j, k);
+                    }
+                }
             }
         }
     }
@@ -256,9 +282,33 @@ void hemm_brian(Side side,
             // TransConj
             if (uplo == Uplo::Upper) {
                 // or uplo == Uplo::General
+                for (idx_t j = 0; j < n; j++) {
+                    for (idx_t k = 0; k < m; k++) {
+                        T sum(0);
+                        for (idx_t i = 0; i < k; i++) {
+                            sum += conj(B(i, j)) * A(i, k);
+                        }
+                        for (idx_t i = k; i < m; i++) {
+                            sum += conj(B(i, j)) * conj(A(k, i));
+                        }
+                        C(j, k) = alpha * sum + beta * C(j, k);
+                    }
+                }
             }
             else {
                 // uplo == Uplo::Lower
+                for (idx_t j = 0; j < n; j++) {
+                    for (idx_t k = 0; k < m; k++) {
+                        T sum(0);
+                        for (idx_t i = 0; i < k; i++) {
+                            sum += conj(B(i, j)) * conj(A(k, i));
+                        }
+                        for (idx_t i = k; i < m; i++) {
+                            sum += conj(B(i, j)) * A(i, k);
+                        }
+                        C(j, k) = alpha * sum + beta * C(j, k);
+                    }
+                }
             }
         }
     }
@@ -340,11 +390,12 @@ void mult_hehe(Uplo uplo,
             }
 
         // A11 * B01H + C10 = C10 // Here Works
-        hemm_brian(Side::Left, Uplo::Upper, Op::Trans, alpha, A11, B01, beta,
+        hemm_brian(Side::Left, Uplo::Upper, Op::ConjTrans, alpha, A11, B01,
+                   beta,
                    C10);  // beta
 
         // //A01^H * B00 + (A11*B01^H) // Here Works
-        hemm_brian(Side::Right, Uplo::Upper, Op::Trans, alpha, B00, A01,
+        hemm_brian(Side::Right, Uplo::Upper, Op::ConjTrans, alpha, B00, A01,
                    real_t(1), C10);
 
         // A11*B11
@@ -402,11 +453,11 @@ void mult_hehe(Uplo uplo,
             }
 
         // A00*B01^H + C01 = C01 // Here Works
-        hemm_brian(Side::Left, Uplo::Lower, Op::Trans, alpha, A00, B10, beta,
-                   C01);
+        hemm_brian(Side::Left, Uplo::Lower, Op::ConjTrans, alpha, A00, B10,
+                   beta, C01);
 
         // A01^H*B11 + C01 = C01 //Here Works
-        hemm_brian(Side::Right, Uplo::Lower, Op::Trans, alpha, B11, A10,
+        hemm_brian(Side::Right, Uplo::Lower, Op::ConjTrans, alpha, B11, A10,
                    real_t(1), C01);
 
         // A11*B11 = C11
@@ -531,78 +582,149 @@ void run(size_t n, size_t k)
     // Fill in L and U
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            L(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            L(j, i) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            U(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            U(j, i) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            if constexpr (is_complex<T>) {
+                L(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+                L(j, i) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+                U(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+                U(j, i) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+
+                if (i == j) {
+                    L(i, j) = T(static_cast<float>(rand()) /
+                                    static_cast<float>(RAND_MAX),
+                                0);
+                    U(i, j) = T(static_cast<float>(rand()) /
+                                    static_cast<float>(RAND_MAX),
+                                0);
+                }
+            }
+            else {
+                L(i, j) = T(static_cast<float>(rand()) /
+                            static_cast<float>(RAND_MAX));
+                L(j, i) = T(static_cast<float>(rand()) /
+                            static_cast<float>(RAND_MAX));
+                U(i, j) = T(static_cast<float>(rand()) /
+                            static_cast<float>(RAND_MAX));
+                U(j, i) = T(static_cast<float>(rand()) /
+                            static_cast<float>(RAND_MAX));
+            }
         }
     }
 
     // Fill in right A and C
     for (int i = 0; i < k; i++) {
         for (int j = 0; j < n; j++) {
-            rightA(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            rightC(i, j) = rightA(i, j);
+            if constexpr (is_complex<T>) {
+                rightA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                rightA(i, j) = T(static_cast<float>(rand()) /
+                                 static_cast<float>(RAND_MAX));
+            }
         }
     }
+    lacpy(GENERAL, rightA, rightC);
 
     // Fill in left A and C
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < k; j++) {
-            leftA(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            leftC(i, j) = leftA(i, j);
+            if constexpr (is_complex<T>) {
+                leftA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                leftA(i, j) = T(static_cast<float>(rand()) /
+                                static_cast<float>(RAND_MAX));
+            }
         }
     }
+    lacpy(GENERAL, leftA, leftC);
 
     // Fill lower triangle with deadbeef on the top right
     for (size_t i = 0; i < n; ++i) {
         for (size_t j = i + 1; j < n; ++j) {
-            L(i, j) = T(static_cast<float>(0xDEADBEEF));
+            if constexpr (is_complex<T>) {
+                L(i, j) = T(static_cast<float>(0xDEADBEEF),
+                            static_cast<float>(0xDEADBEEF));
+            }
+            else {
+                L(i, j) = T(static_cast<float>(0xDEADBEEF));
+            }
         }
     }
 
     // Fill upper triangle with deadbeef on the bottom left
     for (size_t i = 0; i < n; ++i) {
         for (size_t j = 0; j < i; ++j) {
-            U(i, j) = T(static_cast<float>(0xDEADBEEF));
+            if constexpr (is_complex<T>) {
+                U(i, j) = T(static_cast<float>(0xDEADBEEF),
+                            static_cast<float>(0xDEADBEEF));
+            }
+            else {
+                U(i, j) = T(static_cast<float>(0xDEADBEEF));
+            }
         }
     }
 
     // Fill left B
     for (int i = 0; i < k; i++) {
         for (int j = 0; j < n; j++) {
-            leftB(i, j) = i * j + 1;
+            if constexpr (is_complex<T>) {
+                leftB(i, j) = T(i * j + 1, i * j + 1);
+            }
+            else {
+                leftB(i, j) = i * j + 1;
+            }
         }
     }
 
     // Fill right B
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < k; j++) {
-            rightB(i, j) = i * j + 1;
+            if constexpr (is_complex<T>) {
+                rightB(i, j) = T(i * j + 1, i * j + 1);
+            }
+            else {
+                rightB(i, j) = i * j + 1;
+            }
         }
     }
 
     // Fill Transpose left BT
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < k; j++) {
-            leftBT(i, j) = leftB(j, i);
+            if constexpr (is_complex<T>) {
+                leftBT(i, j) = conj(leftB(j, i));
+            }
+            else {
+                leftBT(i, j) = leftB(j, i);
+            }
         }
     }
 
     // Fill Tranposee right BT
     for (int i = 0; i < k; i++) {
         for (int j = 0; j < n; j++) {
-            rightBT(i, j) = rightB(j, i);
+            if constexpr (is_complex<T>) {
+                rightBT(i, j) = conj(rightB(j, i));
+            }
+            else {
+                rightBT(i, j) = rightB(j, i);
+            }
         }
     }
 
-    // // // Print
+    // // Print
     // std::cout << "Starting: \n";
     // std::cout << "\nL = ";
     // printMatrix(L);
@@ -623,22 +745,49 @@ void run(size_t n, size_t k)
     // printMatrix(rightBT);
 
     real_t al = 5.2;
-    real_t be = 10.8;
+    real_t be = 9.4;
 
     // Test Lower Right
     // Trans///////////////////////////////////////////////////////////////////////////////////
+    // Fill in right A and C
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            if constexpr (is_complex<T>) {
+                rightA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                rightA(i, j) = T(static_cast<float>(rand()) /
+                                 static_cast<float>(RAND_MAX));
+            }
+        }
+    }
+    lacpy(GENERAL, rightA, rightC);
+
+    // Fill in left A and C
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < k; j++) {
+            if constexpr (is_complex<T>) {
+                leftA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                leftA(i, j) = T(static_cast<float>(rand()) /
+                                static_cast<float>(RAND_MAX));
+            }
+        }
+    }
+    lacpy(GENERAL, leftA, leftC);
 
     std::cout << "\n\nTesting Right Lower";
+
     hemm(Side::Right, Uplo::Lower, al, L, rightBT, be, rightA);
     real_t rightNormA = lange(FROB_NORM, rightA);
 
-    hemm_brian(Side::Right, Uplo::Lower, Op::Trans, al, L, rightB, be, rightC);
-
-    std::cout << "\nrightA before = ";
-    printMatrix(rightA);
-
-    std::cout << "\nrightC before = ";
-    printMatrix(rightC);
+    hemm_brian(Side::Right, Uplo::Lower, Op::ConjTrans, al, L, rightB, be,
+               rightC);
 
     for (idx_t i = 0; i < k; i++) {
         for (idx_t j = 0; j < n; j++) {
@@ -646,42 +795,51 @@ void run(size_t n, size_t k)
         }
     }
 
-    std::cout << "\nrightA after = ";
-    printMatrix(rightA);
-
-    std::cout << "\nrightC after = ";
-    printMatrix(rightC);
-
     real_t rightNormC = lange(FROB_NORM, rightA);
     std::cout << "\n\nThis is rigth norm of A - C = "
               << rightNormC / rightNormA;
 
+    // Test Upper Right
+    // Trans///////////////////////////////////////////////////////////////////////////////////
     // Fill in right A and C
     for (int i = 0; i < k; i++) {
         for (int j = 0; j < n; j++) {
-            rightA(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            rightC(i, j) = rightA(i, j);
+            if constexpr (is_complex<T>) {
+                rightA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                rightA(i, j) = T(static_cast<float>(rand()) /
+                                 static_cast<float>(RAND_MAX));
+            }
         }
     }
+    lacpy(GENERAL, rightA, rightC);
 
     // Fill in left A and C
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < k; j++) {
-            leftA(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            leftC(i, j) = leftA(i, j);
+            if constexpr (is_complex<T>) {
+                leftA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                leftA(i, j) = T(static_cast<float>(rand()) /
+                                static_cast<float>(RAND_MAX));
+            }
         }
     }
-
-    // Test Upper Right
-    // Trans///////////////////////////////////////////////////////////////////////////////////
+    lacpy(GENERAL, leftA, leftC);
 
     std::cout << "\n\nTesting Right Upper";
+
     hemm(Side::Right, Uplo::Upper, al, U, rightBT, be, rightA);
     rightNormA = lange(FROB_NORM, rightA);
 
-    hemm_brian(Side::Right, Uplo::Upper, Op::Trans, al, U, rightB, be, rightC);
+    hemm_brian(Side::Right, Uplo::Upper, Op::ConjTrans, al, U, rightB, be,
+               rightC);
 
     for (idx_t i = 0; i < k; i++) {
         for (idx_t j = 0; j < n; j++) {
@@ -693,32 +851,46 @@ void run(size_t n, size_t k)
     std::cout << "\n\nThis is rigth norm of A - C = "
               << rightNormC / rightNormA;
 
+    // Test Lower Left
+    // Trans///////////////////////////////////////////////////////////////////////////////////
     // Fill in right A and C
     for (int i = 0; i < k; i++) {
         for (int j = 0; j < n; j++) {
-            rightA(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            rightC(i, j) = rightA(i, j);
+            if constexpr (is_complex<T>) {
+                rightA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                rightA(i, j) = T(static_cast<float>(rand()) /
+                                 static_cast<float>(RAND_MAX));
+            }
         }
     }
+    lacpy(GENERAL, rightA, rightC);
 
     // Fill in left A and C
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < k; j++) {
-            leftA(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            leftC(i, j) = leftA(i, j);
+            if constexpr (is_complex<T>) {
+                leftA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                leftA(i, j) = T(static_cast<float>(rand()) /
+                                static_cast<float>(RAND_MAX));
+            }
         }
     }
-
-    // Test Lower Left
-    // Trans///////////////////////////////////////////////////////////////////////////////////
+    lacpy(GENERAL, leftA, leftC);
 
     std::cout << "\n\nTesting Left Lower";
+
     hemm(Side::Left, Uplo::Lower, al, L, leftBT, be, leftA);
     real_t leftNormA = lange(FROB_NORM, leftA);
 
-    hemm_brian(Side::Left, Uplo::Lower, Op::Trans, al, L, leftB, be, leftC);
+    hemm_brian(Side::Left, Uplo::Lower, Op::ConjTrans, al, L, leftB, be, leftC);
 
     for (idx_t i = 0; i < n; i++) {
         for (idx_t j = 0; j < k; j++) {
@@ -729,32 +901,46 @@ void run(size_t n, size_t k)
     real_t leftNormC = lange(FROB_NORM, leftA);
     std::cout << "\n\nThis is rigth norm of A - C = " << leftNormC / leftNormA;
 
+    // Test Upper Left
+    // Trans///////////////////////////////////////////////////////////////////////////////////
     // Fill in right A and C
     for (int i = 0; i < k; i++) {
         for (int j = 0; j < n; j++) {
-            rightA(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            rightC(i, j) = rightA(i, j);
+            if constexpr (is_complex<T>) {
+                rightA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                rightA(i, j) = T(static_cast<float>(rand()) /
+                                 static_cast<float>(RAND_MAX));
+            }
         }
     }
+    lacpy(GENERAL, rightA, rightC);
 
     // Fill in left A and C
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < k; j++) {
-            leftA(i, j) =
-                T(static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
-            leftC(i, j) = leftA(i, j);
+            if constexpr (is_complex<T>) {
+                leftA(i, j) = T(
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+                    static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+            }
+            else {
+                leftA(i, j) = T(static_cast<float>(rand()) /
+                                static_cast<float>(RAND_MAX));
+            }
         }
     }
-
-    // Test Upper Left
-    // Trans///////////////////////////////////////////////////////////////////////////////////
+    lacpy(GENERAL, leftA, leftC);
 
     std::cout << "\n\nTesting Left Upper";
+
     hemm(Side::Left, Uplo::Upper, al, U, leftBT, be, leftA);
     leftNormA = lange(FROB_NORM, leftA);
 
-    hemm_brian(Side::Left, Uplo::Upper, Op::Trans, al, U, leftB, be, leftC);
+    hemm_brian(Side::Left, Uplo::Upper, Op::ConjTrans, al, U, leftB, be, leftC);
 
     for (idx_t i = 0; i < n; i++) {
         for (idx_t j = 0; j < k; j++) {
@@ -862,8 +1048,8 @@ int main(int argc, char** argv)
     int n, k;
 
     // Default arguments
-    n = (argc < 2) ? 18 : atoi(argv[1]);
-    k = (argc < 3) ? 10 : atoi(argv[2]);
+    n = (argc < 2) ? 200 : atoi(argv[1]);
+    k = (argc < 3) ? 300 : atoi(argv[2]);
 
     srand(3);  // Init random seed
 
@@ -882,13 +1068,13 @@ int main(int argc, char** argv)
     run<long double>(n, k);
     printf("-----------------------\n");
 
-    // printf("run complex< float >( %d, %d )", n, k);
-    // run<std::complex<float> >(n, k);
-    // printf("-----------------------\n");
+    printf("run complex< float >( %d, %d )", n, k);
+    run<std::complex<float> >(n, k);
+    printf("-----------------------\n");
 
-    // printf("run complex< double >( %d, %d )", n, k);
-    // run<std::complex<double> >(n, k);
-    // printf("-----------------------\n");
+    printf("run complex< double >( %d, %d )", n, k);
+    run<std::complex<double> >(n, k);
+    printf("-----------------------\n");
 
     return 0;
 }
